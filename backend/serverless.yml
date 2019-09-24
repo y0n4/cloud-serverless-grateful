@@ -9,6 +9,11 @@ plugins:
   - serverless-iam-roles-per-function
 
 provider:
+
+  tracing:
+    lambda: true
+    apiGateway: true
+
   name: aws
   runtime: nodejs8.10
 
@@ -21,20 +26,21 @@ provider:
     TODO_S3_BUCKET: todos-severless-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300 # amount of time that allows uer to use the link before it expires
 
-  iamRoleStatements:
-  - Effect: Allow
-    Action:
-      - dynamodb:Scan
-      - dynamodb:PutItem
-      - dynamodb:GetItem
-      - dynamodb:UpdateItem
-      - dynamodb:DeleteItem
-    Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}   
-  - Effect: Allow
-    Action:
-      - s3:PutObject
-      - s3:GetObject
-    Resource: arn:aws:s3:::${self:provider.environment.TODO_S3_BUCKET}/*
+  # ✔️ REVIEW: The images are being uploaded but you would also have to update the attachmentUrl for the todo in oder for the image to be shown with the todo.
+  # iamRoleStatements:
+  # - Effect: Allow
+  #   Action:
+  #     - dynamodb:Scan
+  #     - dynamodb:PutItem
+  #     - dynamodb:GetItem
+  #     - dynamodb:UpdateItem
+  #     - dynamodb:DeleteItem
+  #   Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}   
+  # - Effect: Allow
+  #   Action:
+  #     - s3:PutObject
+  #     - s3:GetObject
+  #   Resource: arn:aws:s3:::${self:provider.environment.TODO_S3_BUCKET}/*
 
 functions:
 
@@ -49,12 +55,12 @@ functions:
           method: get # specifies method request
           path: todos # to following resource
           cors: true # fix problems of request
-    # iamRoleStatements: # allows iam permission of what actions can be done in dynamoodb
-    #   - Effect: Allow
-    #     Action:
-    #       - dynamodb:Scan
-    #       - dynamodb:Query
-    #     Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+    iamRoleStatements: # allows iam permission of what actions can be done in dynamoodb
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
 
   # TODO: Configure this function
   CreateTodo:
@@ -66,11 +72,11 @@ functions:
           cors: true
           authorizer: Auth
           reqValidatorName: RequestBodyValidator
-    # iamRoleStatements:
-    #   - Effect: Allow
-    #     Action:
-    #       - dynamodb:PutItem # can post/create
-    #     Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem # can post/create
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
 
 
   # TODO: Configure this function
@@ -82,11 +88,11 @@ functions:
           path: todos/{todoId}
           cors: true
           authorizer: Auth
-    # iamRoleStatements:
-    #   - Effect: Allow
-    #     Action:
-    #       - dynamodb:UpdateItem # can update
-    #     Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:UpdateItem # can update
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
     
 
   # TODO: Configure this function
@@ -98,11 +104,11 @@ functions:
           path: todos/{todoId}
           cors: true
           authorizer: Auth
-    # iamRoleStatements:
-    #   - Effect: Allow
-    #     Action:
-    #       - dynamodb:DeleteItem # can delete
-    #     Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:DeleteItem # can delete
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
 
   # TODO: Configure this function
   GenerateUploadUrl:
@@ -113,6 +119,18 @@ functions:
           path: todos/{todoId}/attachment
           cors: true
           authorizer: Auth
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Scan
+          - dynamodb:GetItem
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+      - Effect: Allow
+        Action:
+          - s3:PutObject
+          - s3:GetObject
+        Resource: arn:aws:s3:::${self:provider.environment.TODO_S3_BUCKET}/*
 
 resources:
   Resources:
