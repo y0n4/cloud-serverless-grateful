@@ -25,6 +25,7 @@ interface TodosProps {
 
 interface TodosState {
   todos: Todo[]
+  copyTodos: Todo[]
   newTodoName: string
   loadingTodos: boolean
 }
@@ -32,12 +33,19 @@ interface TodosState {
 export class Todos extends React.PureComponent<TodosProps, TodosState> {
   state: TodosState = {
     todos: [],
+    copyTodos: [],
     newTodoName: '',
     loadingTodos: true
   }
 
   handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({ newTodoName: event.target.value })
+  }
+
+  updateNameInput = (event: React.ChangeEvent<HTMLInputElement>, pos: number) => {
+    let newCopy = JSON.parse(JSON.stringify(this.state.copyTodos));
+    newCopy[pos].name = event.target.value;
+    this.setState({ copyTodos: newCopy });
   }
 
   onEditButtonClick = (todoId: string) => {
@@ -53,6 +61,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
       })
       this.setState({
         todos: [...this.state.todos, newTodo],
+        copyTodos: [...this.state.todos, newTodo],
         newTodoName: '',
       })
     } catch {
@@ -64,28 +73,38 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
     try {
       await deleteTodo(this.props.auth.getIdToken(), todoId)
       this.setState({
-        todos: this.state.todos.filter(todo => todo.todoId != todoId)
+        todos: this.state.todos.filter(todo => todo.todoId != todoId),
+        copyTodos: this.state.copyTodos.filter(todo => todo.todoId !== todoId)
       })
     } catch {
       alert('Todo deletion failed')
     }
   }
 
-  onTodoCheck = async (pos: number) => {
-    try {
-      const todo = this.state.todos[pos]
-      await patchTodo(this.props.auth.getIdToken(), todo.todoId, {
-        name: todo.name,
-        dueDate: todo.dueDate,
-        done: !todo.done
-      })
+  onTodoCheck = async (pos: number, status: any) => {
+    const todo = this.state.todos[pos]
+    if (status) {
+      try {
+        const newTodo = this.state.copyTodos[pos]
+        await patchTodo(this.props.auth.getIdToken(), todo.todoId, {
+          name: newTodo.name,
+          dueDate: todo.dueDate,
+          done: !todo.done
+        })
+        this.setState({
+          todos: update(this.state.todos, {
+            [pos]: { done: { $set: !todo.done }, name: { $set: newTodo.name } }
+          })
+        })
+      } catch {
+        alert('Todo update failed')
+      }
+    } else {
       this.setState({
         todos: update(this.state.todos, {
           [pos]: { done: { $set: !todo.done } }
         })
       })
-    } catch {
-      alert('Todo update failed')
     }
   }
 
@@ -94,6 +113,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
       const todos = await getTodos(this.props.auth.getIdToken())
       this.setState({
         todos,
+        copyTodos: todos,
         loadingTodos: false
       })
     } catch (e) {
@@ -104,8 +124,8 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
   render() {
     return (
       <div>
-        <Header as="h1">TODOs</Header>
-
+        <Header as="h1">🌸 What are you grateful today? Journal it! 🌸</Header>
+        <br />
         {this.renderCreateTodoInput()}
 
         {this.renderTodos()}
@@ -119,15 +139,15 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
         <Grid.Column width={16}>
           <Input
             action={{
-              color: 'teal',
+              color: 'pink',
               labelPosition: 'left',
               icon: 'add',
-              content: 'New task',
+              content: 'Thank you!',
               onClick: this.onTodoCreate
             }}
             fluid
             actionPosition="left"
-            placeholder="To change the world..."
+            placeholder="There was a fountain for me to refill my empty bottle..."
             value={this.state.newTodoName}
             onChange={this.handleNameChange}
           />
@@ -164,13 +184,38 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
           return (
             <Grid.Row key={todo.todoId}>
               <Grid.Column width={1} verticalAlign="middle">
-                <Checkbox
+                {todo.done ? (
+                  <Button
+                    icon
+                    color="green"
+                    onClick={() => this.onTodoCheck(pos, 'save')}
+                  >
+                    <Icon name="save" />
+                  </Button>
+                ) : (
+                  <Button
+                    icon
+                    color="orange"
+                    onClick={() => this.onTodoCheck(pos, false)}
+                  >
+                    <Icon name="pencil" />
+                  </Button>
+                )}
+                {/* <Checkbox
                   onChange={() => this.onTodoCheck(pos)}
                   checked={todo.done}
-                />
+                /> */}
               </Grid.Column>
               <Grid.Column width={10} verticalAlign="middle">
-                {todo.name}
+                {todo.done ? (
+                  <Input
+                    fluid
+                    actionPosition="left"
+                    placeholder={this.state}
+                    value={this.state.copyTodos[pos].name}
+                    onChange={(e) => this.updateNameInput(e, pos)}
+                  />
+                ) : todo.name}
               </Grid.Column>
               <Grid.Column width={3} floated="right">
                 {todo.dueDate}
@@ -181,7 +226,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
                   color="blue"
                   onClick={() => this.onEditButtonClick(todo.todoId)}
                 >
-                  <Icon name="pencil" />
+                  <Icon name="upload" />
                 </Button>
               </Grid.Column>
               <Grid.Column width={1} floated="right">
