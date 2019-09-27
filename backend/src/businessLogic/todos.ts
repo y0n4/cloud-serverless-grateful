@@ -10,7 +10,6 @@ import * as uuid from 'uuid';
 
 const todoAccess = new TodoAccess()
 
-// ✅ PROJECT FEEDBACK: The business logic needs to be split from the data layer. You can refer back to the lessons to get a recap on this.
 export async function getAllTodos(event: APIGatewayProxyEvent): Promise<TodoItem[]> {
   return await todoAccess.GetAllTodos(getUserId(event));
 }
@@ -42,8 +41,8 @@ export async function updateTodo(event: APIGatewayProxyEvent): Promise<TodoItem>
   return await todoAccess.UpdateTodo(userId, todoId, updatedTodo);
 }
 
-export async function generateUploadUrl(event: APIGatewayProxyEvent): Promise<String> {
+export async function generateUrl(event: APIGatewayProxyEvent): Promise<String> {
   const userId = getUserId(event);
   const todoId = event.pathParameters.todoId;
-  return await todoAccess.GenerateUploadUrl(userId, todoId);
+  return await todoAccess.GenerateUrl(userId, todoId);
 }
