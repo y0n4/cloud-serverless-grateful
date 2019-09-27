@@ -2,7 +2,7 @@
 # 1. provider 2. functions 3. plugins 4. resources
 
 service:
-  name: serverless-todo-app
+  name: serverless-grateful-app
 
 plugins:
   - serverless-webpack
@@ -10,9 +10,9 @@ plugins:
 
 provider:
 
-  tracing:
-    lambda: true
-    apiGateway: true
+  # tracing:
+  #   lambda: true
+  #   apiGateway: true
 
   name: aws
   runtime: nodejs8.10
@@ -21,13 +21,18 @@ provider:
   region: ${opt:region, 'us-east-1'}
 
   environment:
-    TODOS_TABLE: Todos-${self:provider.stage} # go to provider section and find stage variable
-    INDEX_NAME: TodoIdIndex
-    TODO_S3_BUCKET: todos-severless-${self:provider.stage}
+    GRATEFULS_TABLE: Gratefuls-${self:provider.stage} # go to provider section and find stage variable
+    INDEX_NAME: GratefulIdIndex
+    GRATEFUL_S3_BUCKET: gratefuls-severless-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300 # amount of time that allows uer to use the link before it expires
 
   # ✔️ REVIEW: The images are being uploaded but you would also have to update the attachmentUrl for the todo in oder for the image to be shown with the todo.
   # iamRoleStatements:
+  # - Effect: Allow
+  #   Action:
+  #     - xray:PutTelemetryRecords
+  #     - xray:PutTraceSegments
+  #   Resource: "*"
   # - Effect: Allow
   #   Action:
   #     - dynamodb:Scan
@@ -35,12 +40,12 @@ provider:
   #     - dynamodb:GetItem
   #     - dynamodb:UpdateItem
   #     - dynamodb:DeleteItem
-  #   Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}   
+  #   Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.GRATEFULS_TABLE}   
   # - Effect: Allow
   #   Action:
   #     - s3:PutObject
   #     - s3:GetObject
-  #   Resource: arn:aws:s3:::${self:provider.environment.TODO_S3_BUCKET}/*
+  #   Resource: arn:aws:s3:::${self:provider.environment.GRATEFUL_S3_BUCKET}/*
 
 functions:
 
@@ -60,7 +65,7 @@ functions:
         Action:
           - dynamodb:Scan
           - dynamodb:Query
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.GRATEFULS_TABLE}
 
   # TODO: Configure this function
   CreateTodo:
@@ -76,7 +81,7 @@ functions:
       - Effect: Allow
         Action:
           - dynamodb:PutItem # can post/create
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.GRATEFULS_TABLE}
 
 
   # TODO: Configure this function
@@ -92,7 +97,7 @@ functions:
       - Effect: Allow
         Action:
           - dynamodb:UpdateItem # can update
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.GRATEFULS_TABLE}
     
 
   # TODO: Configure this function
@@ -108,11 +113,11 @@ functions:
       - Effect: Allow
         Action:
           - dynamodb:DeleteItem # can delete
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.GRATEFULS_TABLE}
 
   # TODO: Configure this function
-  GenerateUploadUrl:
-    handler: src/lambda/http/generateUploadUrl.handler
+  GenerateUrl:
+    handler: src/lambda/http/generateUrl.handler
     events:
       - http:
           method: post
@@ -125,12 +130,12 @@ functions:
           - dynamodb:Scan
           - dynamodb:GetItem
           - dynamodb:UpdateItem
-        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TODOS_TABLE}
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.GRATEFULS_TABLE}
       - Effect: Allow
         Action:
           - s3:PutObject
           - s3:GetObject
-        Resource: arn:aws:s3:::${self:provider.environment.TODO_S3_BUCKET}/*
+        Resource: arn:aws:s3:::${self:provider.environment.GRATEFUL_S3_BUCKET}/*
 
 resources:
   Resources:
@@ -152,7 +157,7 @@ resources:
           - AttributeName: todoId
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
-        TableName: ${self:provider.environment.TODOS_TABLE}
+        TableName: ${self:provider.environment.GRATEFULS_TABLE}
         LocalSecondaryIndexes:
           - IndexName: ${self:provider.environment.INDEX_NAME}
             KeySchema:
@@ -166,7 +171,7 @@ resources:
     AttachmentsBucket:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: ${self:provider.environment.TODO_S3_BUCKET}
+        BucketName: ${self:provider.environment.GRATEFUL_S3_BUCKET}
         CorsConfiguration:
           CorsRules:
             -
@@ -203,5 +208,5 @@ resources:
               Effect: Allow
               Principal: '*'
               Action: 's3:GetObject'
-              Resource: 'arn:aws:s3:::${self:provider.environment.TODO_S3_BUCKET}/*'
+              Resource: 'arn:aws:s3:::${self:provider.environment.GRATEFUL_S3_BUCKET}/*'
         Bucket: !Ref AttachmentsBucket
