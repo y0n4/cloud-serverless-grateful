@@ -17,13 +17,12 @@ export class TodoAccess {
 
   constructor(
     private readonly docClient: DocumentClient = createDynamoDBClient(),
-    private readonly todosTable = process.env.TODOS_TABLE,
-    private readonly todosBucket = process.env.TODO_S3_BUCKET,
-    private readonly urlExpiration = process.env.SIGNED_URL_EXPIRATION) {
+    private readonly todosTable = process.env.GRATEFULS_TABLE,
+    private readonly todosBucket = process.env.GRATEFUL_S3_BUCKET,
+    private readonly urlExpiration = process.env.SIGNED_URL_EXPIRATION,
+    ) {
   }
 
-  // ✅ PROJECT FEEDBACK: Currently, all the todos are being fetched, you need to query the todos for the logged in user only.
-  // ✅ PROJECT FEEDBACK: Please use the query method instead of scan to get the todos.
   async GetAllTodos(userId: string): Promise<TodoItem[]> {
     console.log('Getting all todos')
 
@@ -43,6 +42,8 @@ export class TodoAccess {
   }
 
   async CreateTodo(todo): Promise<TodoItem> {
+    console.log('creating todo')
+
     await this.docClient.put({
       TableName: this.todosTable,
       Item: todo
@@ -53,6 +54,8 @@ export class TodoAccess {
   // for key param, you need partition key and other key attributes for this to work ⬇️
   // https://stackoverflow.com/questions/42757872/the-provided-key-element-does-not-match-the-schema-error-when-getting-an-item/42759071
   async DeleteTodo(userId: string, todoId: string): Promise<TodoItem[]> {
+    console.log('deleting todo')
+
     await this.docClient.delete({
       TableName: this.todosTable,
       Key: { userId, todoId } // need partition key and sort key for this to work
@@ -61,10 +64,12 @@ export class TodoAccess {
   }
 
   async UpdateTodo(userId: string, todoId: string, updatedTodo): Promise<TodoItem> {
+    console.log('updating todo')
+
     await this.docClient.update({
       TableName: this.todosTable,
       Key: { userId, todoId },
-      UpdateExpression: 'set #name = :n, dueDate = :dd, done = :d ',
+      UpdateExpression: 'set #name = :n, dueDate = :dd, done = :d',
       ExpressionAttributeValues: {
           ':n': updatedTodo.name,
           ':dd': updatedTodo.dueDate,
@@ -77,8 +82,9 @@ export class TodoAccess {
     return updatedTodo;
   }
 
-  async GenerateUploadUrl(userId: string, todoId: string): Promise<string> {
-    // ✅ REVIEW: The images are being uploaded but you would also have to update the attachmentUrl for the todo in oder for the image to be shown with the todo.
+  async GenerateUrl(userId: string, todoId: string): Promise<string> {
+    console.log('generating todo')
+
     const url = s3.getSignedUrl('putObject', {
       Bucket: this.todosBucket,
       Key: todoId,
