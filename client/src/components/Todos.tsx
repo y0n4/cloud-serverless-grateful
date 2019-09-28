@@ -147,7 +147,7 @@ export class Todos extends React.PureComponent<TodosProps, TodosState> {
             }}
             fluid
             actionPosition="left"
-            placeholder="There was a fountain for me to refill my empty bottle..."
+            placeholder="I am grateful for being forunate enough to have clean water"
             value={this.state.newTodoName}
             onChange={this.handleNameChange}
           />
